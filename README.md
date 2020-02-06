@@ -1,6 +1,8 @@
+[![pub package](https://img.shields.io/pub/v/google_maps_cluster_manager.svg)](https://pub.dartlang.org/packages/google_maps_cluster_manager)
+
 # Flutter Clustering for Google Maps
 
-A Flutter package to cluster items on a [Google Maps](https://pub.dev/packages/google_maps_flutter) widget. Highly inspired by [clustering_google_maps](https://pub.dev/packages/clustering_google_maps)
+A Flutter package to cluster items on a [Google Maps](https://pub.dev/packages/google_maps_flutter) widget based on Geohash. Highly inspired by [clustering_google_maps](https://pub.dev/packages/clustering_google_maps)
 
 ## Usage
 
