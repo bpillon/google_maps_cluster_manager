@@ -10,7 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class ClusterManager<T> {
   ClusterManager(this.items, this.updateMarkers,
       {Future<Marker> Function(Cluster<T>) markerBuilder,
-      this.levels = const [4, 6, 10, 12.5, 13.5, 15, 16, 16.5, 20],
+      this.levels = const [1, 3.5, 5.5, 8.25, 11.5, 14.5, 16, 16.5, 20],
       this.extraPercent = 0.2})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder;
 
@@ -87,6 +87,8 @@ class ClusterManager<T> {
 
     int level = _findLevel(levels);
 
+    print('LEVEL : $level $levels $_currentZoom');
+
     List<Cluster<T>> markers = List();
     markers = _computeClusters(visibleItems, List(), level: level);
 
@@ -128,8 +130,8 @@ class ClusterManager<T> {
           onTap: () {
             print(cluster);
           },
-          icon: await _getBasicClusterBitmap(cluster.isCluster ? 125 : 75,
-              text: cluster.isCluster ? cluster.count.toString() : null),
+          icon: await _getBasicClusterBitmap(cluster.isMultiple ? 125 : 75,
+              text: cluster.isMultiple ? cluster.count.toString() : null),
         );
       };
 

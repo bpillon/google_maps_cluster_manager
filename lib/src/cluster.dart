@@ -16,7 +16,7 @@ class Cluster<T> {
 
   int get count => markers.length;
 
-  bool get isCluster => items.length > 1;
+  bool get isMultiple => markers.length > 1;
 
   String getId() {
     return location.latitude.toString() +
