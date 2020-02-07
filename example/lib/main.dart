@@ -43,7 +43,7 @@ class MapSampleState extends State<MapSample> {
           item: Place(name: 'Place $i')),
     for (int i = 0; i < 10; i++)
       ClusterItem(LatLng(48.858265 - i * 0.001, 2.350107 + i * 0.001),
-          item: Place(name: 'Restaurant $i')),
+          item: Place(name: 'Restaurant $i', isClosed: i % 2 == 0)),
     for (int i = 0; i < 10; i++)
       ClusterItem(LatLng(48.858265 + i * 0.01, 2.350107 - i * 0.01),
           item: Place(name: 'Bar $i')),
@@ -64,11 +64,11 @@ class MapSampleState extends State<MapSample> {
 
   ClusterManager _initClusterManager() {
     return ClusterManager<Place>(items, _updateMarkers,
-        markerBuilder: _markerBuilder);
+        markerBuilder: _markerBuilder, initialZoom: _parisCameraPosition.zoom);
   }
 
   void _updateMarkers(Set<Marker> markers) {
-    print('Update markers ${markers.length}');
+    print('Updated ${markers.length} markers');
     setState(() {
       this.markers = markers;
     });
@@ -78,15 +78,24 @@ class MapSampleState extends State<MapSample> {
   Widget build(BuildContext context) {
     return new Scaffold(
       body: GoogleMap(
-        mapType: MapType.normal,
-        initialCameraPosition: _parisCameraPosition,
-        markers: markers,
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-          _manager.setMapController(controller);
+          mapType: MapType.normal,
+          initialCameraPosition: _parisCameraPosition,
+          markers: markers,
+          onMapCreated: (GoogleMapController controller) {
+            _controller.complete(controller);
+            _manager.setMapController(controller);
+          },
+          onCameraMove: _manager.onCameraMove,
+          onCameraIdle: _manager.updateMap),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _manager.setItems(<ClusterItem<Place>>[
+            for (int i = 0; i < 30; i++)
+              ClusterItem<Place>(LatLng(48.858265 + i * 0.01, 2.350107),
+                  item: Place(name: 'New Place ${DateTime.now()}'))
+          ]);
         },
-        onCameraMove: _manager.onCameraMove,
-        onCameraIdle: _manager.updateMap,
+        child: Icon(Icons.update),
       ),
     );
   }
@@ -97,12 +106,11 @@ class MapSampleState extends State<MapSample> {
           markerId: MarkerId(cluster.getId()),
           position: cluster.location,
           onTap: () {
-            cluster.items.forEach((s) => print('Place : ${s.name}'));
-
-            print('---- ${cluster.toString()}');
+            print('---- $cluster');
+            cluster.items.forEach((p) => print(p));
           },
-          icon: await _getMarkerBitmap(cluster.isCluster ? 125 : 75,
-              text: cluster.isCluster ? cluster.count.toString() : null),
+          icon: await _getMarkerBitmap(cluster.isMultiple ? 125 : 75,
+              text: cluster.isMultiple ? cluster.count.toString() : null),
         );
       };
 

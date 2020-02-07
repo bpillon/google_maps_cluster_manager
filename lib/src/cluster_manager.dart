@@ -8,10 +8,11 @@ import 'package:google_maps_cluster_manager/src/utils/boudaries.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ClusterManager<T> {
-  ClusterManager(this.items, this.updateMarkers,
+  ClusterManager(this._items, this.updateMarkers,
       {Future<Marker> Function(Cluster<T>) markerBuilder,
-      this.levels = const [1, 3.5, 5.5, 8.25, 11.5, 14.5, 16, 16.5, 20],
-      this.extraPercent = 0.2})
+      this.levels = const [1, 3.5, 5, 8.25, 11.5, 14.5, 16, 16.5, 20],
+      this.extraPercent = 0.2,
+      this.initialZoom = 5.0})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder;
 
   // Method to build markers
@@ -26,14 +27,18 @@ class ClusterManager<T> {
   // Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
 
+  final double initialZoom;
+
   // Google Maps constroller
   GoogleMapController _mapController;
 
   // List of items
-  Iterable<ClusterItem<T>> items;
+  Iterable<ClusterItem<T>> get items => _items;
+  Iterable<ClusterItem<T>> _items;
 
   // Last known zoom
-  double _currentZoom = 0.0;
+  double get _currentZoom => _zoom ?? initialZoom;
+  double _zoom;
 
   void setMapController(GoogleMapController controller,
       {bool withUpdate = true}) {
@@ -45,8 +50,18 @@ class ClusterManager<T> {
     updateClusters();
   }
 
+  void setItems(List<ClusterItem<T>> newItems) {
+    _items = newItems;
+    updateMap();
+  }
+
+  void addItem(ClusterItem<T> newItem) {
+    _items = List.from([...items, newItem]);
+    updateMap();
+  }
+
   void onCameraMove(CameraPosition position, {forceUpdate = false}) {
-    _currentZoom = position.zoom;
+    _zoom = position.zoom;
     if (forceUpdate) {
       updateMap();
     }
@@ -86,8 +101,6 @@ class ClusterManager<T> {
     }).toList();
 
     int level = _findLevel(levels);
-
-    print('LEVEL : $level $levels $_currentZoom');
 
     List<Cluster<T>> markers = List();
     markers = _computeClusters(visibleItems, List(), level: level);

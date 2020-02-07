@@ -24,4 +24,9 @@ class Cluster<T> {
         location.longitude.toString() +
         "_$count";
   }
+
+  @override
+  String toString() {
+    return 'Cluster of $count $T (${location.latitude}, ${location.longitude})';
+  }
 }
