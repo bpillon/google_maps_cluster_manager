@@ -1,6 +1,6 @@
 name: google_maps_cluster_manager
 description: Simple Flutter clustering library for Google Maps based on Geohash.
-version: 0.0.2
+version: 0.1.0
 author: Baptiste Pillon <baptiste.pillon@gmail.com>
 homepage: https://github.com/bpillon/google_maps_cluster_manager
 

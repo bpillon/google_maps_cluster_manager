@@ -76,7 +76,7 @@ class ClusterManager<T> {
     updateMarkers(markers);
   }
 
-  Future<List<Cluster>> getMarkers() async {
+  Future<List<Cluster<T>>> getMarkers() async {
     if (_mapController == null) return List();
 
     LatLngBounds latLngBounds = await _mapController.getVisibleRegion();

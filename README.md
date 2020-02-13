@@ -2,6 +2,8 @@
 
 # Flutter Cluster Manager for Google Maps
 
+![Screenshot](https://raw.githubusercontent.com/bpillon/google_maps_cluster_manager/master/example/example.gif)
+
 A Flutter package to cluster items on a [Google Maps](https://pub.dev/packages/google_maps_flutter) widget based on Geohash. Highly inspired by [clustering_google_maps](https://pub.dev/packages/clustering_google_maps)
 
 ## Usage
