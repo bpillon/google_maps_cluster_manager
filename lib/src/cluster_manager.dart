@@ -3,15 +3,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_cluster_manager/src/cluster_item.dart';
-import 'package:google_maps_cluster_manager/src/utils/extensions.dart';
-import 'package:google_maps_cluster_manager/src/utils/boudaries.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ClusterManager<T> {
   ClusterManager(this._items, this.updateMarkers,
       {Future<Marker> Function(Cluster<T>) markerBuilder,
       this.levels = const [1, 3.5, 5, 8.25, 11.5, 14.5, 16, 16.5, 20],
-      this.extraPercent = 0.2,
+      this.extraPercent = 0.5,
       this.initialZoom = 5.0})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder;
 
@@ -77,35 +75,38 @@ class ClusterManager<T> {
   }
 
   Future<List<Cluster<T>>> getMarkers() async {
+    final stopwatch = Stopwatch();
+    stopwatch.start();
     if (_mapController == null) return List();
 
-    LatLngBounds latLngBounds = await _mapController.getVisibleRegion();
-
-    Boundaries latitudeBoundaries = Boundaries(
-        latLngBounds.northeast.latitude, latLngBounds.southwest.latitude);
-    Boundaries longitudeBoundaries = Boundaries(
-        latLngBounds.northeast.longitude, latLngBounds.southwest.longitude);
+    final LatLngBounds mapBounds = await _mapController.getVisibleRegion();
+    final LatLngBounds inflatedBounds = _inflateBounds(mapBounds, extraPercent);
 
     List<ClusterItem<T>> visibleItems = items.where((i) {
-      bool latQuery = i.location.latitude >=
-              latitudeBoundaries.min.removePercentage(extraPercent) &&
-          i.location.latitude <=
-              latitudeBoundaries.max.addPercentage(extraPercent);
-
-      bool longQuery = i.location.longitude >=
-              longitudeBoundaries.min.removePercentage(extraPercent) &&
-          i.location.longitude <=
-              longitudeBoundaries.max.addPercentage(extraPercent);
-
-      return latQuery && longQuery;
+      return inflatedBounds.contains(i.location);
     }).toList();
 
     int level = _findLevel(levels);
-
     List<Cluster<T>> markers = List();
     markers = _computeClusters(visibleItems, List(), level: level);
-
     return markers;
+  }
+
+  LatLngBounds _inflateBounds(LatLngBounds bounds, double ratio) {
+    // Bounds that cross the date line expand compared to their difference with the date line
+    double lng;
+    if (bounds.northeast.longitude < bounds.southwest.longitude) {
+      lng = ratio * ((180.0 - bounds.southwest.longitude) + (bounds.northeast.longitude + 180));
+    } else {
+      lng = ratio * (bounds.northeast.longitude - bounds.southwest.longitude);
+    }
+
+    // Latitudes expanded beyond +/- 90 are automatically clamped by LatLng
+    double lat = ratio * (bounds.northeast.latitude - bounds.southwest.latitude);
+    return LatLngBounds(
+      southwest: LatLng(bounds.southwest.latitude - lat, bounds.southwest.longitude - lng),
+      northeast: LatLng(bounds.northeast.latitude + lat, bounds.northeast.longitude + lng),
+    );
   }
 
   int _findLevel(List<double> levels) {
@@ -128,6 +129,7 @@ class ClusterManager<T> {
         .toList();
 
     markerItems.add(Cluster<T>(items));
+
 
     List<ClusterItem<T>> newInputList = List.from(
         inputItems.where((i) => i.geohash.substring(0, level) != nextGeohash));
