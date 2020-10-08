@@ -27,7 +27,8 @@ ClusterManager<Place>(
     markerBuilder: _markerBuilder, // Optional : Method to implement if you want to customise markers
     levels: [1, 3.5, 5, 8.25, 11.5, 14.5, 16, 16.5, 20], // Optional : Configure this if you want to change zoom levels at which the clustering precision change
     extraPercent: 0.2, // Optional : This number represents the percentage (0.2 for 20%) of latitude and longitude (in each direction) to be considered on top of the visible map bounds to render clusters. This way, clusters don't "pop out" when you cross the map.
-    initialZoom: 5.0 // Optional : The initial zoom of your map to be able to render good clusters on map creation
+    initialZoom: 5.0, // Optional : The initial zoom of your map to be able to render good clusters on map creation
+    stopClusteringZoom: 17.0 // Optional : The zoom level to stop clustering, so it's only rendering single item "clusters"
 );
 ```
 

@@ -64,7 +64,9 @@ class MapSampleState extends State<MapSample> {
 
   ClusterManager _initClusterManager() {
     return ClusterManager<Place>(items, _updateMarkers,
-        markerBuilder: _markerBuilder, initialZoom: _parisCameraPosition.zoom);
+        markerBuilder: _markerBuilder,
+        initialZoom: _parisCameraPosition.zoom,
+        stopClusteringZoom: 17.0);
   }
 
   void _updateMarkers(Set<Marker> markers) {

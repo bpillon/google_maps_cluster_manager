@@ -10,62 +10,51 @@ class ClusterManager<T> {
       {Future<Marker> Function(Cluster<T>) markerBuilder,
       this.levels = const [1, 3.5, 5, 8.25, 11.5, 14.5, 16, 16.5, 20],
       this.extraPercent = 0.5,
-      this.initialZoom = 5.0})
+      this.initialZoom = 5.0,
+      this.stopClusteringZoom})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder;
 
-  // Method to build markers
+  /// Method to build markers
   final Future<Marker> Function(Cluster<T>) markerBuilder;
 
-  // Function to update Markers on Google Map
+  /// Function to update Markers on Google Map
   final void Function(Set<Marker>) updateMarkers;
 
-  // Zoom levels configuration
+  /// Zoom levels configuration
   final List<double> levels;
 
-  // Extra percent of markers to be loaded (ex : 0.2 for 20%)
+  /// Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
 
   final double initialZoom;
 
-  // Google Maps constroller
+  /// Zoom level to stop cluster rendering
+  final double stopClusteringZoom;
+
+  /// Google Maps constroller
   GoogleMapController _mapController;
 
-  // List of items
+  /// List of items
   Iterable<ClusterItem<T>> get items => _items;
   Iterable<ClusterItem<T>> _items;
 
-  // Last known zoom
+  /// Last known zoom
   double get _currentZoom => _zoom ?? initialZoom;
   double _zoom;
 
+  /// Set Google Map Controller for the cluster manager
   void setMapController(GoogleMapController controller,
       {bool withUpdate = true}) {
     _mapController = controller;
     if (withUpdate) updateMap();
   }
 
+  /// Method called on map update to update cluster. Can also be manually called to force update.
   void updateMap() {
-    updateClusters();
+    _updateClusters();
   }
 
-  void setItems(List<ClusterItem<T>> newItems) {
-    _items = newItems;
-    updateMap();
-  }
-
-  void addItem(ClusterItem<T> newItem) {
-    _items = List.from([...items, newItem]);
-    updateMap();
-  }
-
-  void onCameraMove(CameraPosition position, {forceUpdate = false}) {
-    _zoom = position.zoom;
-    if (forceUpdate) {
-      updateMap();
-    }
-  }
-
-  void updateClusters() async {
+  void _updateClusters() async {
     List<Cluster<T>> mapMarkers = await getMarkers();
 
     final Set<Marker> markers =
@@ -74,17 +63,39 @@ class ClusterManager<T> {
     updateMarkers(markers);
   }
 
+  /// Update all cluster items
+  void setItems(List<ClusterItem<T>> newItems) {
+    _items = newItems;
+    updateMap();
+  }
+
+  /// Add on cluster item
+  void addItem(ClusterItem<T> newItem) {
+    _items = List.from([...items, newItem]);
+    updateMap();
+  }
+
+  /// Method called on camera move
+  void onCameraMove(CameraPosition position, {forceUpdate = false}) {
+    _zoom = position.zoom;
+    if (forceUpdate) {
+      updateMap();
+    }
+  }
+
+  /// Retrieve cluster markers
   Future<List<Cluster<T>>> getMarkers() async {
-    final stopwatch = Stopwatch();
-    stopwatch.start();
     if (_mapController == null) return List();
 
     final LatLngBounds mapBounds = await _mapController.getVisibleRegion();
-    final LatLngBounds inflatedBounds = _inflateBounds(mapBounds, extraPercent);
+    final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
 
     List<ClusterItem<T>> visibleItems = items.where((i) {
       return inflatedBounds.contains(i.location);
     }).toList();
+
+    if (stopClusteringZoom != null && _currentZoom >= stopClusteringZoom)
+      return visibleItems.map((i) => Cluster<T>([i])).toList();
 
     int level = _findLevel(levels);
     List<Cluster<T>> markers = List();
@@ -92,20 +103,26 @@ class ClusterManager<T> {
     return markers;
   }
 
-  LatLngBounds _inflateBounds(LatLngBounds bounds, double ratio) {
+  LatLngBounds _inflateBounds(LatLngBounds bounds) {
     // Bounds that cross the date line expand compared to their difference with the date line
     double lng;
     if (bounds.northeast.longitude < bounds.southwest.longitude) {
-      lng = ratio * ((180.0 - bounds.southwest.longitude) + (bounds.northeast.longitude + 180));
+      lng = extraPercent *
+          ((180.0 - bounds.southwest.longitude) +
+              (bounds.northeast.longitude + 180));
     } else {
-      lng = ratio * (bounds.northeast.longitude - bounds.southwest.longitude);
+      lng = extraPercent *
+          (bounds.northeast.longitude - bounds.southwest.longitude);
     }
 
     // Latitudes expanded beyond +/- 90 are automatically clamped by LatLng
-    double lat = ratio * (bounds.northeast.latitude - bounds.southwest.latitude);
+    double lat =
+        extraPercent * (bounds.northeast.latitude - bounds.southwest.latitude);
     return LatLngBounds(
-      southwest: LatLng(bounds.southwest.latitude - lat, bounds.southwest.longitude - lng),
-      northeast: LatLng(bounds.northeast.latitude + lat, bounds.northeast.longitude + lng),
+      southwest: LatLng(
+          bounds.southwest.latitude - lat, bounds.southwest.longitude - lng),
+      northeast: LatLng(
+          bounds.northeast.latitude + lat, bounds.northeast.longitude + lng),
     );
   }
 
@@ -129,7 +146,6 @@ class ClusterManager<T> {
         .toList();
 
     markerItems.add(Cluster<T>(items));
-
 
     List<ClusterItem<T>> newInputList = List.from(
         inputItems.where((i) => i.geohash.substring(0, level) != nextGeohash));

@@ -14,3 +14,6 @@ doc/api/
 # Api key files
 **/example/android/app/src/main/res/values/strings.xml
 **/example/ios/Runner/Secrets.swift
+
+# Visual Studio Code related
+.vscode/
