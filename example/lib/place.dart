@@ -6,7 +6,6 @@ class Place {
 
   @override
   String toString() {
-    // TODO: implement toString
     return 'Place $name (closed : $isClosed)';
   }
 }

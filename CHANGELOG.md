@@ -1,3 +1,8 @@
+## 0.2.1
+
+- Improve potential precision of geohash
+- Update to `google_maps_flutter` version 1.0.6
+
 ## 0.2.0
 
 - Add `stopClusteringZoom` variable

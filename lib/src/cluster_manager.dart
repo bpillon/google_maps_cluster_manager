@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_cluster_manager/src/cluster_item.dart';
@@ -8,11 +9,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class ClusterManager<T> {
   ClusterManager(this._items, this.updateMarkers,
       {Future<Marker> Function(Cluster<T>) markerBuilder,
-      this.levels = const [1, 3.5, 5, 8.25, 11.5, 14.5, 16, 16.5, 20],
+      this.levels = const [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
       this.extraPercent = 0.5,
       this.initialZoom = 5.0,
       this.stopClusteringZoom})
-      : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder;
+      : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
+        assert(levels.length <= precision);
 
   /// Method to build markers
   final Future<Marker> Function(Cluster<T>) markerBuilder;
@@ -30,6 +32,9 @@ class ClusterManager<T> {
 
   /// Zoom level to stop cluster rendering
   final double stopClusteringZoom;
+
+  /// Precision of the geohash
+  static final int precision = kIsWeb ? 12 : 20;
 
   /// Google Maps constroller
   GoogleMapController _mapController;
@@ -85,7 +90,7 @@ class ClusterManager<T> {
 
   /// Retrieve cluster markers
   Future<List<Cluster<T>>> getMarkers() async {
-    if (_mapController == null) return List();
+    if (_mapController == null) return List.empty();
 
     final LatLngBounds mapBounds = await _mapController.getVisibleRegion();
     final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
@@ -98,8 +103,9 @@ class ClusterManager<T> {
       return visibleItems.map((i) => Cluster<T>([i])).toList();
 
     int level = _findLevel(levels);
-    List<Cluster<T>> markers = List();
-    markers = _computeClusters(visibleItems, List(), level: level);
+    List<Cluster<T>> markers = _computeClusters(
+        visibleItems, List.empty(growable: true),
+        level: level);
     return markers;
   }
 
