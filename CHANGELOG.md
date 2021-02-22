@@ -1,3 +1,8 @@
+## 0.3.0
+
+- Add `google_maps_flutter_web` dependency to be compatible with Flutter web
+- Update to `google_maps_flutter` version 1.2.0
+
 ## 0.2.1
 
 - Improve potential precision of geohash
