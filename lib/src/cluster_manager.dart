@@ -1,14 +1,16 @@
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
-import 'package:google_maps_cluster_manager/src/cluster_item.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'cluster.dart';
+import 'cluster_item.dart';
 
 class ClusterManager<T> {
   ClusterManager(this._items, this.updateMarkers,
-      {Future<Marker> Function(Cluster<T>) markerBuilder,
+      {Future<Marker> Function(Cluster<T>)? markerBuilder,
       this.levels = const [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
       this.extraPercent = 0.5,
       this.initialZoom = 5.0,
@@ -31,13 +33,13 @@ class ClusterManager<T> {
   final double initialZoom;
 
   /// Zoom level to stop cluster rendering
-  final double stopClusteringZoom;
+  final double? stopClusteringZoom;
 
   /// Precision of the geohash
   static final int precision = kIsWeb ? 12 : 20;
 
   /// Google Maps constroller
-  GoogleMapController _mapController;
+  GoogleMapController? _mapController;
 
   /// List of items
   Iterable<ClusterItem<T>> get items => _items;
@@ -45,7 +47,7 @@ class ClusterManager<T> {
 
   /// Last known zoom
   double get _currentZoom => _zoom ?? initialZoom;
-  double _zoom;
+  double? _zoom;
 
   /// Set Google Map Controller for the cluster manager
   void setMapController(GoogleMapController controller,
@@ -92,14 +94,14 @@ class ClusterManager<T> {
   Future<List<Cluster<T>>> getMarkers() async {
     if (_mapController == null) return List.empty();
 
-    final LatLngBounds mapBounds = await _mapController.getVisibleRegion();
+    final LatLngBounds mapBounds = await _mapController!.getVisibleRegion();
     final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
 
     List<ClusterItem<T>> visibleItems = items.where((i) {
       return inflatedBounds.contains(i.location);
     }).toList();
 
-    if (stopClusteringZoom != null && _currentZoom >= stopClusteringZoom)
+    if (stopClusteringZoom != null && _currentZoom >= stopClusteringZoom!)
       return visibleItems.map((i) => Cluster<T>([i])).toList();
 
     int level = _findLevel(levels);
@@ -173,9 +175,7 @@ class ClusterManager<T> {
       };
 
   static Future<BitmapDescriptor> _getBasicClusterBitmap(int size,
-      {String text}) async {
-    assert(size != null);
-
+      {String? text}) async {
     final PictureRecorder pictureRecorder = PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
     final Paint paint1 = Paint()..color = Colors.red;
@@ -199,7 +199,7 @@ class ClusterManager<T> {
     }
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
-    final data = await img.toByteData(format: ImageByteFormat.png);
+    final data = await img.toByteData(format: ImageByteFormat.png) as ByteData;
 
     return BitmapDescriptor.fromBytes(data.buffer.asUint8List());
   }

@@ -1,3 +1,9 @@
+## 1.0.0
+
+- Migrate to null safety
+- Internalising geohash to make it null safety compatible
+- Temporary : remove `google_maps_flutter_web` because it needs a reorganization of the project to work correctly (& it's not null safety compatible for the moment)
+
 ## 0.3.0
 
 - Add `google_maps_flutter_web` dependency to be compatible with Flutter web

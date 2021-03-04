@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -29,7 +30,7 @@ class MapSample extends StatefulWidget {
 }
 
 class MapSampleState extends State<MapSample> {
-  ClusterManager _manager;
+  late ClusterManager _manager;
 
   Completer<GoogleMapController> _controller = Completer();
 
@@ -117,9 +118,7 @@ class MapSampleState extends State<MapSample> {
         );
       };
 
-  Future<BitmapDescriptor> _getMarkerBitmap(int size, {String text}) async {
-    assert(size != null);
-
+  Future<BitmapDescriptor> _getMarkerBitmap(int size, {String? text}) async {
     if (kIsWeb) size = (size / 2).floor();
 
     final PictureRecorder pictureRecorder = PictureRecorder();
@@ -148,7 +147,7 @@ class MapSampleState extends State<MapSample> {
     }
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
-    final data = await img.toByteData(format: ImageByteFormat.png);
+    final data = await img.toByteData(format: ImageByteFormat.png) as ByteData;
 
     return BitmapDescriptor.fromBytes(data.buffer.asUint8List());
   }

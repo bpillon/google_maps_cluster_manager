@@ -1,5 +1,6 @@
-import 'package:google_maps_cluster_manager/src/cluster_item.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'cluster_item.dart';
 
 class Cluster<T> {
   final LatLng location;
@@ -13,7 +14,7 @@ class Cluster<T> {
                 markers.length);
 
   /// Retrieve cluster items
-  Iterable<T> get items => markers.map((m) => m.item);
+  Iterable<T?> get items => markers.map((m) => m.item);
 
   /// Get number of clustered items
   int get count => markers.length;
