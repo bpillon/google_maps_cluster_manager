@@ -15,7 +15,7 @@ To use this package, add `google_maps_cluster_manager` as a [dependency in your 
 Your map items has to be `ClusterItem<T>`. This is basically a wrapper around `LatLng` which is able to carry an object of `T` type (not mandatory). This way, when you click on a cluster, you are able to retrieve `T` objects that are gathered by the cluster.
 
 ```dart
-ClusterItem(LatLng(48.848200, 2.319124), item: Place(name: 'Place'));
+ClusterItem<Place>(LatLng(48.848200, 2.319124), item: Place(name: 'Place'));
 ```
 
 To start with Cluster Manager, you have to initialize a `ClusterManager` instance.
@@ -31,6 +31,13 @@ ClusterManager<Place>(
     stopClusteringZoom: 17.0 // Optional : The zoom level to stop clustering, so it's only rendering single item "clusters"
 );
 ```
+
+When your `GoogleMapController` is created, you have to set the `mapId` with the `setMapId` method :
+
+```dart
+_manager.setMapId(controller.mapId);
+```
+
 
 You are able to add an new item to the map by calling `addItem` method on your `ClusterManager` instance. You can also completely change the items on your maps by calling `setItems` method.
 

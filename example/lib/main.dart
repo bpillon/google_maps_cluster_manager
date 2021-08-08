@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:example/place.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
-import 'place.dart';
 
 void main() => runApp(MyApp());
 
@@ -87,7 +86,7 @@ class MapSampleState extends State<MapSample> {
           markers: markers,
           onMapCreated: (GoogleMapController controller) {
             _controller.complete(controller);
-            _manager.setMapController(controller);
+            _manager.setMapId(controller.mapId);
           },
           onCameraMove: _manager.onCameraMove,
           onCameraIdle: _manager.updateMap),

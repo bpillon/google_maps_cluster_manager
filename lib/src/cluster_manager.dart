@@ -3,10 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-
-import 'cluster.dart';
-import 'cluster_item.dart';
+import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
 class ClusterManager<T> {
   ClusterManager(this._items, this.updateMarkers,
@@ -38,8 +36,8 @@ class ClusterManager<T> {
   /// Precision of the geohash
   static final int precision = kIsWeb ? 12 : 20;
 
-  /// Google Maps constroller
-  GoogleMapController? _mapController;
+  /// Google Maps map id
+  int? _mapId;
 
   /// List of items
   Iterable<ClusterItem<T>> get items => _items;
@@ -49,10 +47,9 @@ class ClusterManager<T> {
   double get _currentZoom => _zoom ?? initialZoom;
   double? _zoom;
 
-  /// Set Google Map Controller for the cluster manager
-  void setMapController(GoogleMapController controller,
-      {bool withUpdate = true}) {
-    _mapController = controller;
+  /// Set Google Map Id for the cluster manager
+  void setMapId(int mapId, {bool withUpdate = true}) {
+    _mapId = mapId;
     if (withUpdate) updateMap();
   }
 
@@ -92,9 +89,11 @@ class ClusterManager<T> {
 
   /// Retrieve cluster markers
   Future<List<Cluster<T>>> getMarkers() async {
-    if (_mapController == null) return List.empty();
+    if (_mapId == null) return List.empty();
 
-    final LatLngBounds mapBounds = await _mapController!.getVisibleRegion();
+    final LatLngBounds mapBounds = await GoogleMapsFlutterPlatform.instance
+        .getVisibleRegion(mapId: _mapId!);
+
     final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
 
     List<ClusterItem<T>> visibleItems = items.where((i) {

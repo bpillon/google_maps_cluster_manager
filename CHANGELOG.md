@@ -1,3 +1,7 @@
+## 2.0.0
+
+- Use mapId to retrieve the map instead of GoogleMapController. This way, the library depends only on `google_maps_flutter_platform_interface` which makes it compatible both with `google_maps_flutter` and `google_maps_flutter_web`.
+
 ## 1.0.0
 
 - Migrate to null safety
