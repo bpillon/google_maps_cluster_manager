@@ -1,3 +1,7 @@
+## 3.0.0+1
+
+- Remove useless log
+
 ## 3.0.0
 
 **Breaking changes**:

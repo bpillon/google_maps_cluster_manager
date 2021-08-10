@@ -129,10 +129,6 @@ class ClusterManager<T extends ClusterItem> {
     double eLng = (bounds.northeast.longitude + lng).clamp(-_maxLng, _maxLng);
     double wLng = (bounds.southwest.longitude - lng).clamp(-_maxLng, _maxLng);
 
-    print(
-        'HELLO $lng ${bounds.northeast.longitude} ${bounds.southwest.longitude}');
-    print('HELLO2 $eLng $wLng');
-
     return LatLngBounds(
       southwest: LatLng(bounds.southwest.latitude - lat, wLng),
       northeast:
