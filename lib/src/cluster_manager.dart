@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -6,12 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
-class ClusterManager<T> {
+class ClusterManager<T extends ClusterItem> {
   ClusterManager(this._items, this.updateMarkers,
       {Future<Marker> Function(Cluster<T>)? markerBuilder,
       this.levels = const [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
       this.extraPercent = 0.5,
-      this.initialZoom = 5.0,
       this.stopClusteringZoom})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
         assert(levels.length <= precision);
@@ -28,8 +28,6 @@ class ClusterManager<T> {
   /// Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
 
-  final double initialZoom;
-
   /// Zoom level to stop cluster rendering
   final double? stopClusteringZoom;
 
@@ -40,16 +38,18 @@ class ClusterManager<T> {
   int? _mapId;
 
   /// List of items
-  Iterable<ClusterItem<T>> get items => _items;
-  Iterable<ClusterItem<T>> _items;
+  Iterable<T> get items => _items;
+  Iterable<T> _items;
 
   /// Last known zoom
-  double get _currentZoom => _zoom ?? initialZoom;
-  double? _zoom;
+  late double _zoom;
+
+  final double _maxLng = 180 - pow(10, -10.0) as double;
 
   /// Set Google Map Id for the cluster manager
-  void setMapId(int mapId, {bool withUpdate = true}) {
+  void setMapId(int mapId, {bool withUpdate = true}) async {
     _mapId = mapId;
+    _zoom = await GoogleMapsFlutterPlatform.instance.getZoomLevel(mapId: mapId);
     if (withUpdate) updateMap();
   }
 
@@ -68,13 +68,13 @@ class ClusterManager<T> {
   }
 
   /// Update all cluster items
-  void setItems(List<ClusterItem<T>> newItems) {
+  void setItems(List<T> newItems) {
     _items = newItems;
     updateMap();
   }
 
   /// Add on cluster item
-  void addItem(ClusterItem<T> newItem) {
+  void addItem(ClusterItem newItem) {
     _items = List.from([...items, newItem]);
     updateMap();
   }
@@ -96,11 +96,11 @@ class ClusterManager<T> {
 
     final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
 
-    List<ClusterItem<T>> visibleItems = items.where((i) {
+    List<T> visibleItems = items.where((i) {
       return inflatedBounds.contains(i.location);
     }).toList();
 
-    if (stopClusteringZoom != null && _currentZoom >= stopClusteringZoom!)
+    if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
       return visibleItems.map((i) => Cluster<T>([i])).toList();
 
     int level = _findLevel(levels);
@@ -112,7 +112,7 @@ class ClusterManager<T> {
 
   LatLngBounds _inflateBounds(LatLngBounds bounds) {
     // Bounds that cross the date line expand compared to their difference with the date line
-    double lng;
+    double lng = 0;
     if (bounds.northeast.longitude < bounds.southwest.longitude) {
       lng = extraPercent *
           ((180.0 - bounds.southwest.longitude) +
@@ -125,36 +125,45 @@ class ClusterManager<T> {
     // Latitudes expanded beyond +/- 90 are automatically clamped by LatLng
     double lat =
         extraPercent * (bounds.northeast.latitude - bounds.southwest.latitude);
+
+    double eLng = (bounds.northeast.longitude + lng).clamp(-_maxLng, _maxLng);
+    double wLng = (bounds.southwest.longitude - lng).clamp(-_maxLng, _maxLng);
+
+    print(
+        'HELLO $lng ${bounds.northeast.longitude} ${bounds.southwest.longitude}');
+    print('HELLO2 $eLng $wLng');
+
     return LatLngBounds(
-      southwest: LatLng(
-          bounds.southwest.latitude - lat, bounds.southwest.longitude - lng),
-      northeast: LatLng(
-          bounds.northeast.latitude + lat, bounds.northeast.longitude + lng),
+      southwest: LatLng(bounds.southwest.latitude - lat, wLng),
+      northeast:
+          LatLng(bounds.northeast.latitude + lat, lng != 0 ? eLng : _maxLng),
     );
   }
 
   int _findLevel(List<double> levels) {
     for (int i = levels.length - 1; i >= 0; i--) {
-      if (levels[i] <= _currentZoom) return i + 1;
+      if (levels[i] <= _zoom) {
+        return i + 1;
+      }
     }
 
     return 1;
   }
 
   List<Cluster<T>> _computeClusters(
-      List<ClusterItem<T>> inputItems, List<Cluster<T>> markerItems,
+      List<T> inputItems, List<Cluster<T>> markerItems,
       {int level = 5}) {
     if (inputItems.isEmpty) return markerItems;
 
     String nextGeohash = inputItems[0].geohash.substring(0, level);
 
-    List<ClusterItem<T>> items = inputItems
+    List<T> items = inputItems
         .where((p) => p.geohash.substring(0, level) == nextGeohash)
         .toList();
 
     markerItems.add(Cluster<T>(items));
 
-    List<ClusterItem<T>> newInputList = List.from(
+    List<T> newInputList = List.from(
         inputItems.where((i) => i.geohash.substring(0, level) != nextGeohash));
 
     return _computeClusters(newInputList, markerItems, level: level);

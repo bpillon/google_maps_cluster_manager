@@ -12,10 +12,18 @@ To use this package, add `google_maps_cluster_manager` as a [dependency in your 
 
 ### Getting Started
 
-Your map items has to be `ClusterItem<T>`. This is basically a wrapper around `LatLng` which is able to carry an object of `T` type (not mandatory). This way, when you click on a cluster, you are able to retrieve `T` objects that are gathered by the cluster.
+Your map items has to use `ClusterItem` as a mixin (or extends this class) and implements the `LatLng location` getter.
 
 ```dart
-ClusterItem<Place>(LatLng(48.848200, 2.319124), item: Place(name: 'Place'));
+class Place with ClusterItem {
+  final String name;
+  final LatLng latLng;
+
+  Place({required this.name, required this.latLng});
+
+  @override
+  LatLng get location => latLng;
+}
 ```
 
 To start with Cluster Manager, you have to initialize a `ClusterManager` instance.
@@ -27,7 +35,6 @@ ClusterManager<Place>(
     markerBuilder: _markerBuilder, // Optional : Method to implement if you want to customize markers
     levels: [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0], // Optional : Configure this if you want to change zoom levels at which the clustering precision change
     extraPercent: 0.2, // Optional : This number represents the percentage (0.2 for 20%) of latitude and longitude (in each direction) to be considered on top of the visible map bounds to render clusters. This way, clusters don't "pop out" when you cross the map.
-    initialZoom: 5.0, // Optional : The initial zoom of your map to be able to render good clusters on map creation
     stopClusteringZoom: 17.0 // Optional : The zoom level to stop clustering, so it's only rendering single item "clusters"
 );
 ```
@@ -38,10 +45,9 @@ When your `GoogleMapController` is created, you have to set the `mapId` with the
 _manager.setMapId(controller.mapId);
 ```
 
-
 You are able to add an new item to the map by calling `addItem` method on your `ClusterManager` instance. You can also completely change the items on your maps by calling `setItems` method.
 
-You can customize the icon of a cluster by using `Future<Marker> Function(Cluster<T>) markerBuilder` parameter.
+You can customize the icon of a cluster by using `Future<Marker> Function(Cluster<T extends ClusterItem>) markerBuilder` parameter.
 
 ```dart
 static Future<Marker> Function(Cluster) get markerBuilder => (cluster) async {
@@ -86,7 +92,9 @@ static Future<BitmapDescriptor> getClusterBitmap(int size, {String text?}) async
 }
 ```
 
-Every cluster (even one item clusters) is rendered by the library as a `Cluster<T>` object. You can differentiate single item clusters from multiple ones by using the `isMultiple` variable (or the `count` variable). This way, you can create different markers icon depending on the type of cluster.
+Every cluster (even one item clusters) is rendered by the library as a `Cluster<T extends ClusterItem>` object. You can differentiate single item clusters from multiple ones by using the `isMultiple` variable (or the `count` variable). This way, you can create different markers icon depending on the type of cluster.
+
+You can create multiple managers for a single map, see the `multiple.dart` example.
 
 ## Complete Basic Example
 

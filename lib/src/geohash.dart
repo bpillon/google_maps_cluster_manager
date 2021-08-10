@@ -5,6 +5,8 @@
 
 import 'dart:math';
 
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+
 /// A collection of static functions to work with geohashes, as exlpained
 /// [here](https://en.wikipedia.org/wiki/Geohash)
 class Geohash {
@@ -78,15 +80,14 @@ class Geohash {
   ];
 
   /// Encode a latitude and longitude pair into a  geohash string.
-  static String encode(final double latitude, final double longitude,
-      {final int codeLength: 12}) {
+  static String encode(final LatLng latLng, {final int codeLength: 12}) {
     if (codeLength > 20 || (identical(1.0, 1) && codeLength > 12)) {
       //Javascript can only handle 32 bit ints reliably.
       throw ArgumentError(
           'latitude and longitude are not precise enough to encode $codeLength characters');
     }
-    final latitudeBase2 = (latitude + 90) * (pow(2.0, 52) / 180);
-    final longitudeBase2 = (longitude + 180) * (pow(2.0, 52) / 360);
+    final latitudeBase2 = (latLng.latitude + 90) * (pow(2.0, 52) / 180);
+    final longitudeBase2 = (latLng.longitude + 180) * (pow(2.0, 52) / 360);
     final longitudeBits = (codeLength ~/ 2) * 5 + (codeLength % 2) * 3;
     final latitudeBits = codeLength * 5 - longitudeBits;
     var longitudeCode = (identical(1.0, 1)) //Test for javascript.
@@ -185,10 +186,10 @@ class Geohash {
   }
 
   /// Get a single number that is the center of a specific geohash rectangle.
-  static Point<double> decode(String geohash) {
+  static LatLng decode(String geohash) {
     final extents = getExtents(geohash);
     final x = extents.left + extents.width / 2;
     final y = extents.top + extents.height / 2;
-    return Point<double>(x, y);
+    return LatLng(x, y);
   }
 }

@@ -1,6 +1,15 @@
+## 3.0.0
+
+**Breaking changes**:
+
+- `ClusterItem` is now a mixin (or a class to extends from) instead of a wrapper around items. This way you don't have to map your items to ClusterItems before using them.
+- Remove now useless `initialZoom` parameter.
+
 ## 2.0.0
 
-- Use mapId to retrieve the map instead of GoogleMapController. This way, the library depends only on `google_maps_flutter_platform_interface` which makes it compatible both with `google_maps_flutter` and `google_maps_flutter_web`.
+**Breaking changes**:
+
+- Use mapId (with `setMapId` method) to retrieve the map instead of GoogleMapController. This way, the library depends only on `google_maps_flutter_platform_interface` which makes it compatible both with `google_maps_flutter` and `google_maps_flutter_web`.
 
 ## 1.0.0
 
