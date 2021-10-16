@@ -43,7 +43,6 @@ class ClusterManager<T extends ClusterItem> {
 
   /// Last known zoom
   late double _zoom;
-
   final double _maxLng = 180 - pow(10, -10.0) as double;
 
   /// Set Google Map Id for the cluster manager
@@ -68,33 +67,49 @@ class ClusterManager<T extends ClusterItem> {
   }
 
   /// Update all cluster items
-  void setItems(List<T> newItems) {
+  void setItems(List<T> newItems, { bool update = true }) {
     _items = newItems;
-    updateMap();
+    if (update) {
+      updateMap();
+    }
   }
 
   /// Add on cluster item
-  void addItem(ClusterItem newItem) {
+  void addItem(ClusterItem newItem, { bool update = true }) {
     _items = List.from([...items, newItem]);
-    updateMap();
+    if (update) {
+      updateMap();
+    }
   }
 
   /// Method called on camera move
-  void onCameraMove(CameraPosition position, {forceUpdate = false}) {
+  void onCameraMove(CameraPosition position, { bool forceUpdate = false }) {
     _zoom = position.zoom;
     if (forceUpdate) {
       updateMap();
     }
   }
 
+  /// Return the geo-calc inflated bounds
+  Future<LatLngBounds?> getInflateBounds() async {
+    if (_mapId == null) return null;
+    final LatLngBounds mapBounds = await GoogleMapsFlutterPlatform.instance
+        .getVisibleRegion(mapId: _mapId!);
+
+    return _inflateBounds(mapBounds);
+  }
+
   /// Retrieve cluster markers
   Future<List<Cluster<T>>> getMarkers() async {
     if (_mapId == null) return List.empty();
 
-    final LatLngBounds mapBounds = await GoogleMapsFlutterPlatform.instance
-        .getVisibleRegion(mapId: _mapId!);
+    final LatLngBounds? inflatedBounds = await getInflateBounds();
+    if (inflatedBounds == null) return List.empty();
 
-    final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
+    // final LatLngBounds mapBounds = await GoogleMapsFlutterPlatform.instance
+    //     .getVisibleRegion(mapId: _mapId!);
+    //
+    // final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
 
     List<T> visibleItems = items.where((i) {
       return inflatedBounds.contains(i.location);
@@ -151,7 +166,15 @@ class ClusterManager<T extends ClusterItem> {
       {int level = 5}) {
     if (inputItems.isEmpty) return markerItems;
 
-    String nextGeohash = inputItems[0].geohash.substring(0, level);
+    // String nextGeohash = inputItems[0].geohash.substring(0, level);
+    String? nextGeohash;
+    while (nextGeohash == null) {
+      try {
+        nextGeohash = inputItems[0].geohash.substring(0, level);
+      } catch (err) {
+        level -= 1;
+      }
+    }
 
     List<T> items = inputItems
         .where((p) => p.geohash.substring(0, level) == nextGeohash)

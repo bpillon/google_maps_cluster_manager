@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  google_maps_flutter_platform_interface: ^2.1.0
+  google_maps_flutter_platform_interface: ^2.1.3
 
 dev_dependencies:
   flutter_test:
