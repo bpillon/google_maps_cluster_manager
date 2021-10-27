@@ -5,13 +5,24 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
+import 'package:google_maps_cluster_manager/src/max_dist_clustering.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+
+enum ClusterAlgorithm { GEOHASH, MAX_DIST }
+
+class MaxDistParams {
+  final double epsilon;
+
+  MaxDistParams(this.epsilon);
+}
 
 class ClusterManager<T extends ClusterItem> {
   ClusterManager(this._items, this.updateMarkers,
       {Future<Marker> Function(Cluster<T>)? markerBuilder,
       this.levels = const [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
       this.extraPercent = 0.5,
+      this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
+      this.maxDistParams,
       this.stopClusteringZoom})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
         assert(levels.length <= precision);
@@ -27,6 +38,11 @@ class ClusterManager<T extends ClusterItem> {
 
   /// Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
+
+  // Clusteringalgorithm
+  final ClusterAlgorithm clusterAlgorithm;
+
+  final MaxDistParams? maxDistParams;
 
   /// Zoom level to stop cluster rendering
   final double? stopClusteringZoom;
@@ -94,20 +110,31 @@ class ClusterManager<T extends ClusterItem> {
     final LatLngBounds mapBounds = await GoogleMapsFlutterPlatform.instance
         .getVisibleRegion(mapId: _mapId!);
 
-    final LatLngBounds inflatedBounds = _inflateBounds(mapBounds);
+    late LatLngBounds inflatedBounds;
+    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH) {
+      inflatedBounds = _inflateBounds(mapBounds);
+    } else {
+      inflatedBounds = mapBounds;
+    }
 
     List<T> visibleItems = items.where((i) {
       return inflatedBounds.contains(i.location);
     }).toList();
 
     if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
-      return visibleItems.map((i) => Cluster<T>([i])).toList();
+      return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
 
-    int level = _findLevel(levels);
-    List<Cluster<T>> markers = _computeClusters(
-        visibleItems, List.empty(growable: true),
-        level: level);
-    return markers;
+    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH) {
+      int level = _findLevel(levels);
+      List<Cluster<T>> markers = _computeClusters(
+          visibleItems, List.empty(growable: true),
+          level: level);
+      return markers;
+    } else {
+      List<Cluster<T>> markers =
+          _computeClustersWithMaxDist(visibleItems, _zoom);
+      return markers;
+    }
   }
 
   LatLngBounds _inflateBounds(LatLngBounds bounds) {
@@ -146,18 +173,35 @@ class ClusterManager<T extends ClusterItem> {
     return 1;
   }
 
+  int _getZoomLevel(double zoom) {
+    for (int i = levels.length - 1; i >= 0; i--) {
+      if (levels[i] <= zoom) {
+        return levels[i].toInt();
+      }
+    }
+
+    return 1;
+  }
+
+  List<Cluster<T>> _computeClustersWithMaxDist(List<T> inputItems, double zoom) {
+    MaxDistClustering<T> scanner = MaxDistClustering(
+      epsilon: maxDistParams?.epsilon ?? 20,
+    );
+
+    return scanner.run(inputItems, _getZoomLevel(zoom));
+  }
+
   List<Cluster<T>> _computeClusters(
       List<T> inputItems, List<Cluster<T>> markerItems,
       {int level = 5}) {
     if (inputItems.isEmpty) return markerItems;
-
     String nextGeohash = inputItems[0].geohash.substring(0, level);
 
     List<T> items = inputItems
         .where((p) => p.geohash.substring(0, level) == nextGeohash)
         .toList();
 
-    markerItems.add(Cluster<T>(items));
+    markerItems.add(Cluster<T>.fromItems(items));
 
     List<T> newInputList = List.from(
         inputItems.where((i) => i.geohash.substring(0, level) != nextGeohash));
