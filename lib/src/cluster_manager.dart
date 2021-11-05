@@ -21,6 +21,7 @@ class ClusterManager<T extends ClusterItem> {
       {Future<Marker> Function(Cluster<T>)? markerBuilder,
       this.levels = const [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
       this.extraPercent = 0.5,
+      this.maxItemsForMaxDistAlgo = 200,
       this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
       this.maxDistParams,
       this.stopClusteringZoom})
@@ -29,6 +30,9 @@ class ClusterManager<T extends ClusterItem> {
 
   /// Method to build markers
   final Future<Marker> Function(Cluster<T>) markerBuilder;
+
+  // Num of Items to switch from MAX_DIST algo to GEOHASH
+  final int maxItemsForMaxDistAlgo;
 
   /// Function to update Markers on Google Map
   final void Function(Set<Marker>) updateMarkers;
@@ -124,7 +128,8 @@ class ClusterManager<T extends ClusterItem> {
     if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
       return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
 
-    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH) {
+    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH ||
+        visibleItems.length >= maxItemsForMaxDistAlgo) {
       int level = _findLevel(levels);
       List<Cluster<T>> markers = _computeClusters(
           visibleItems, List.empty(growable: true),
@@ -183,7 +188,8 @@ class ClusterManager<T extends ClusterItem> {
     return 1;
   }
 
-  List<Cluster<T>> _computeClustersWithMaxDist(List<T> inputItems, double zoom) {
+  List<Cluster<T>> _computeClustersWithMaxDist(
+      List<T> inputItems, double zoom) {
     MaxDistClustering<T> scanner = MaxDistClustering(
       epsilon: maxDistParams?.epsilon ?? 20,
     );
