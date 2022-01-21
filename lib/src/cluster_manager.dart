@@ -126,6 +126,19 @@ class ClusterManager<T extends ClusterItem> {
     return inflatedBounds;
   }
 
+  /// Build cluster items in case of overlap
+  List<Cluster<T>> buildPlainListWithOverlappingCluster(List<T> items) {
+    Map<String, List<T>> _map = {};
+    items.forEach((e) {
+      if (_map.containsKey(e.location.toString())) {
+        _map[e.location.toString()]?.add(e);
+      } else {
+        _map[e.location.toString()] = [e];
+      }
+    });
+    return _map.values.map((i) => Cluster<T>.fromItems(i, isOverlapped: i.length > 1)).toList();
+  }
+
   /// Retrieve cluster markers
   Future<List<Cluster<T>>> getMarkers() async {
     final inflatedBounds = await getInflatedBounds();
@@ -135,8 +148,10 @@ class ClusterManager<T extends ClusterItem> {
       return inflatedBounds.contains(i.location);
     }).toList();
 
-    if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
-      return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
+    if (stopClusteringZoom != null && _zoom <= stopClusteringZoom!) {
+      // return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
+      return buildPlainListWithOverlappingCluster(visibleItems);
+    }
 
     if (clusterAlgorithm == ClusterAlgorithm.GEOHASH ||
         visibleItems.length >= maxItemsForMaxDistAlgo) {

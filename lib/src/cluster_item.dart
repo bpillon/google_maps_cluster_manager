@@ -7,4 +7,8 @@ abstract class ClusterItem {
   String? _geohash;
   String get geohash => _geohash ??=
       Geohash.encode(location, codeLength: ClusterManager.precision);
+
+  /// base getId.
+  /// If you override it, it uses it's value
+  String? getId() { return null; }
 }

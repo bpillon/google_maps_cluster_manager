@@ -4,20 +4,24 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 class Cluster<T extends ClusterItem> {
   final LatLng location;
   final Iterable<T> items;
+  bool isOverlapped;
 
-  Cluster(this.items, this.location);
+  Cluster(this.items, this.location, { this.isOverlapped = false });
 
-  Cluster.fromItems(Iterable<T> items)
+  Cluster.fromItems(Iterable<T> items, { bool isOverlapped = false })
       : this.items = items,
         this.location = LatLng(
             items.fold<double>(0.0, (p, c) => p + c.location.latitude) /
                 items.length,
             items.fold<double>(0.0, (p, c) => p + c.location.longitude) /
-                items.length);
+                items.length),
+        this.isOverlapped = isOverlapped
+      ;
 
   //location becomes weighted avarage lat lon
   Cluster.fromClusters(Cluster<T> cluster1, Cluster<T> cluster2)
       : this.items = cluster1.items.toSet()..addAll(cluster2.items.toSet()),
+        this.isOverlapped = false,
         this.location = LatLng(
             (cluster1.location.latitude * cluster1.count +
                 cluster2.location.latitude * cluster2.count) /
@@ -34,6 +38,11 @@ class Cluster<T extends ClusterItem> {
 
   /// Basic cluster marker id
   String getId() {
+    final idList = items.where((e) => e.getId() != null).map((e) => e.getId()).toList();
+    if (idList.isNotEmpty) {
+      return idList.join(':');
+    }
+
     return location.latitude.toString() +
         "_" +
         location.longitude.toString() +
