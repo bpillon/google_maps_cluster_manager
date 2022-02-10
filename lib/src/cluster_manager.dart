@@ -5,15 +5,29 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
+import 'package:google_maps_cluster_manager/src/common.dart';
 import 'package:google_maps_cluster_manager/src/max_dist_clustering.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
 enum ClusterAlgorithm { GEOHASH, MAX_DIST }
+enum ClusterOverlapping { NONE, OVERLAP, DISTRIBUTE }
 
 class MaxDistParams {
   final double epsilon;
 
   MaxDistParams(this.epsilon);
+}
+
+class ClusterOverlappingParams {
+  final double bearing;
+  final double distance;
+  final double overlappingDistanceLimitInMeters;
+
+  ClusterOverlappingParams({
+    this.bearing = 0.3,
+    this.distance = 0.4,
+    this.overlappingDistanceLimitInMeters = 20,
+  });
 }
 
 class ClusterManager<T extends ClusterItem> {
@@ -24,14 +38,17 @@ class ClusterManager<T extends ClusterItem> {
         this.maxItemsForMaxDistAlgo = 200,
         this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
         this.maxDistParams,
-        this.stopClusteringZoom})
+        this.stopClusteringZoom,
+        this.clusterOverlapping = ClusterOverlapping.NONE,
+        this.clusterOverlappingParams,
+      })
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
         assert(levels.length <= precision);
 
   /// Method to build markers
   final Future<Marker> Function(Cluster<T>) markerBuilder;
 
-  // Num of Items to switch from MAX_DIST algo to GEOHASH
+  /// Num of Items to switch from MAX_DIST algo to GEOHASH
   final int maxItemsForMaxDistAlgo;
 
   /// Function to update Markers on Google Map
@@ -43,9 +60,10 @@ class ClusterManager<T extends ClusterItem> {
   /// Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
 
-  // Clusteringalgorithm
+  /// Clusteringalgorithm
   final ClusterAlgorithm clusterAlgorithm;
 
+  /// Max dists params
   final MaxDistParams? maxDistParams;
 
   /// Zoom level to stop cluster rendering
@@ -53,6 +71,12 @@ class ClusterManager<T extends ClusterItem> {
 
   /// Precision of the geohash
   static final int precision = kIsWeb ? 12 : 20;
+
+  /// Overlapping option
+  final ClusterOverlapping clusterOverlapping;
+
+  /// Overlapping distance limit
+  ClusterOverlappingParams? clusterOverlappingParams;
 
   /// Google Maps map id
   int? _mapId;
@@ -128,15 +152,49 @@ class ClusterManager<T extends ClusterItem> {
 
   /// Build cluster items in case of overlap
   List<Cluster<T>> buildPlainListWithOverlappingCluster(List<T> items) {
-    Map<String, List<T>> _map = {};
-    items.forEach((e) {
-      if (_map.containsKey(e.location.toString())) {
-        _map[e.location.toString()]?.add(e);
-      } else {
-        _map[e.location.toString()] = [e];
+    clusterOverlappingParams ??= ClusterOverlappingParams();
+    print('BUILD OVERLAPPED WITH $clusterOverlapping');
+    /// Overlapping: if the points are in the same place, create fixed cluster
+    if (clusterOverlapping == ClusterOverlapping.OVERLAP) {
+      Map<String, List<T>> _map = {};
+      items.forEach((e) {
+        if (_map.containsKey(e.location.toString())) {
+          _map[e.location.toString()]?.add(e);
+        } else {
+          _map[e.location.toString()] = [e];
+        }
+      });
+      return _map.values.map((i) =>
+      Cluster<T>.fromItems(i, isOverlapped: i.length > 1)).toList();
+    }
+
+    /// Distribute: if the points are in the same place, put aside
+    if (clusterOverlapping == ClusterOverlapping.DISTRIBUTE) {
+      final DistUtils distUtils = DistUtils();
+      var bearing = 0.8;
+      for(var i = 0; i < items.length; i++) {
+        for(var j = 0; j < items.length; j++) {
+          if (j != i) {
+            final dist = distUtils.getLatLonDist(
+                items[i].location, items[j].location, _getZoomLevel(_zoom)) * 1000;
+            // print('DISTANCE: $dist FROM OVERLAPPING: $overlappingDistanceLimitInMeters');
+            if (dist < clusterOverlappingParams!.overlappingDistanceLimitInMeters) {
+              // print('PREVIOUS LOCATION: ${items[i].location}');
+              items[i].location = distUtils.getPointAtDistanceFrom(
+                  items[i].location,
+                  clusterOverlappingParams!.bearing,
+                  clusterOverlappingParams!.distance
+              );
+              // print('NEW LOCATION: ${items[i].location}');
+              bearing += 0.3;
+            }
+          }
+        }
       }
-    });
-    return _map.values.map((i) => Cluster<T>.fromItems(i, isOverlapped: i.length > 1)).toList();
+    }
+
+    /// Otherwise, simple list
+    return items.map((i) => Cluster<T>.fromItems([i])).toList();
   }
 
   /// Retrieve cluster markers
@@ -148,7 +206,8 @@ class ClusterManager<T extends ClusterItem> {
       return inflatedBounds.contains(i.location);
     }).toList();
 
-    if (stopClusteringZoom != null && _zoom <= stopClusteringZoom!) {
+    print('STOP $stopClusteringZoom AT ZOOM $_zoom');
+    if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!) {
       // return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
       return buildPlainListWithOverlappingCluster(visibleItems);
     }
