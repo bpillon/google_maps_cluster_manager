@@ -153,7 +153,7 @@ class ClusterManager<T extends ClusterItem> {
   /// Build cluster items in case of overlap
   List<Cluster<T>> buildPlainListWithOverlappingCluster(List<T> items) {
     clusterOverlappingParams ??= ClusterOverlappingParams();
-    print('BUILD OVERLAPPED WITH $clusterOverlapping');
+    // print('BUILD OVERLAPPED WITH $clusterOverlapping');
     /// Overlapping: if the points are in the same place, create fixed cluster
     if (clusterOverlapping == ClusterOverlapping.OVERLAP) {
       Map<String, List<T>> _map = {};
@@ -171,22 +171,19 @@ class ClusterManager<T extends ClusterItem> {
     /// Distribute: if the points are in the same place, put aside
     if (clusterOverlapping == ClusterOverlapping.DISTRIBUTE) {
       final DistUtils distUtils = DistUtils();
-      var bearing = 0.8;
+      var bearing = clusterOverlappingParams!.bearing;
       for(var i = 0; i < items.length; i++) {
         for(var j = 0; j < items.length; j++) {
           if (j != i) {
             final dist = distUtils.getLatLonDist(
                 items[i].location, items[j].location, _getZoomLevel(_zoom)) * 1000;
-            // print('DISTANCE: $dist FROM OVERLAPPING: $overlappingDistanceLimitInMeters');
             if (dist < clusterOverlappingParams!.overlappingDistanceLimitInMeters) {
-              // print('PREVIOUS LOCATION: ${items[i].location}');
               items[i].location = distUtils.getPointAtDistanceFrom(
                   items[i].location,
-                  clusterOverlappingParams!.bearing,
+                  bearing,
                   clusterOverlappingParams!.distance
               );
-              // print('NEW LOCATION: ${items[i].location}');
-              bearing += 0.3;
+              bearing += clusterOverlappingParams!.bearing;
             }
           }
         }
@@ -202,15 +199,21 @@ class ClusterManager<T extends ClusterItem> {
     final inflatedBounds = await getInflatedBounds();
     if (inflatedBounds == null) return List.empty();
 
+    print('STOP $stopClusteringZoom AT ZOOM $_zoom');
+    // in case of stopping zoom clustering and custom overlapping conf,
+    // clear visible point in bounds after change point positions
+    if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!) {
+      // return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
+      final l = buildPlainListWithOverlappingCluster(items.toList()); // visibleItems);
+      return l.where((i) {
+        return inflatedBounds.contains(i.location);
+      }).toList();
+    }
+
+    // otherwise go ahead with simple standard clustering logic
     List<T> visibleItems = items.where((i) {
       return inflatedBounds.contains(i.location);
     }).toList();
-
-    print('STOP $stopClusteringZoom AT ZOOM $_zoom');
-    if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!) {
-      // return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
-      return buildPlainListWithOverlappingCluster(visibleItems);
-    }
 
     if (clusterAlgorithm == ClusterAlgorithm.GEOHASH ||
         visibleItems.length >= maxItemsForMaxDistAlgo) {
