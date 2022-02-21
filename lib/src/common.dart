@@ -55,6 +55,7 @@ class DistUtils {
         (meterPerPixel / _thd);
     // print("dist is $x");
     distCache[_Tuple(point1, point2)] = dist;
+    // print('DISTANCE IS: $dist');
     return dist;
   }
 

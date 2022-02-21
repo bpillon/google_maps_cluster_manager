@@ -152,16 +152,22 @@ class ClusterManager<T extends ClusterItem> {
 
   /// Build cluster items in case of overlap
   List<Cluster<T>> buildPlainListWithOverlappingCluster(List<T> items) {
+    final DistUtils distUtils = DistUtils();
+    // items.forEach((e) { print('***** id: ${e.getId()} ${e.location}'); });
+
     clusterOverlappingParams ??= ClusterOverlappingParams();
     // print('BUILD OVERLAPPED WITH $clusterOverlapping');
     /// Overlapping: if the points are in the same place, create fixed cluster
     if (clusterOverlapping == ClusterOverlapping.OVERLAP) {
-      Map<String, List<T>> _map = {};
+      Map<LatLng, List<T>> _map = {};
       items.forEach((e) {
-        if (_map.containsKey(e.location.toString())) {
-          _map[e.location.toString()]?.add(e);
+        final key = _map.keys.firstWhere(
+           (k) => distUtils.getLatLonDist(k, e.location, _getZoomLevel(_zoom)) <= (clusterOverlappingParams!.overlappingDistanceLimitInMeters), orElse: () => LatLng(0, 0)
+        );
+        if (key.longitude != 0) {
+          _map[key]?.add(e);
         } else {
-          _map[e.location.toString()] = [e];
+          _map[e.location] = [e];
         }
       });
       return _map.values.map((i) =>
@@ -170,25 +176,27 @@ class ClusterManager<T extends ClusterItem> {
 
     /// Distribute: if the points are in the same place, put aside
     if (clusterOverlapping == ClusterOverlapping.DISTRIBUTE) {
-      final DistUtils distUtils = DistUtils();
       var bearing = clusterOverlappingParams!.bearing;
       for(var i = 0; i < items.length; i++) {
-        for(var j = 0; j < items.length; j++) {
-          if (j != i) {
-            final dist = distUtils.getLatLonDist(
-                items[i].location, items[j].location, _getZoomLevel(_zoom)) * 1000;
-            if (dist < clusterOverlappingParams!.overlappingDistanceLimitInMeters) {
-              items[i].location = distUtils.getPointAtDistanceFrom(
-                  items[i].location,
-                  bearing,
-                  clusterOverlappingParams!.distance
-              );
-              bearing += clusterOverlappingParams!.bearing;
-            }
+        for(var j = i + 1; j < items.length; j++) {
+          final dist = distUtils.getLatLonDist(
+              items[i].location, items[j].location, _getZoomLevel(_zoom));
+
+          // print('parking id: ${items[i].getId()} - ${items[j].getId()} = $dist (of ${clusterOverlappingParams!.overlappingDistanceLimitInMeters})');
+          if (dist < (clusterOverlappingParams!.overlappingDistanceLimitInMeters)) {
+            items[i].location = distUtils.getPointAtDistanceFrom(
+                items[i].location,
+                bearing,
+                clusterOverlappingParams!.distance
+            );
+            bearing += clusterOverlappingParams!.bearing;
           }
         }
       }
     }
+
+    // final l = items.map((i) => Cluster<T>.fromItems([i])).toList();
+    // l.forEach((e) { print('@@@@@@ id: ${e.getId()} ${e.location}'); });
 
     /// Otherwise, simple list
     return items.map((i) => Cluster<T>.fromItems([i])).toList();
