@@ -88,7 +88,7 @@ class ClusterManager<T extends ClusterItem> {
   }
 
   /// Update all cluster items
-  void setItems(List<T> newItems) {
+  void setItems(Iterable<T> newItems) {
     _items = newItems;
     updateMap();
   }
