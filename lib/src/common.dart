@@ -1,9 +1,5 @@
 import 'dart:math';
-import 'dart:ui';
-
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
-
-import 'cluster.dart';
 
 const int _mio = 1000000;
 const int _thd = 1000;
