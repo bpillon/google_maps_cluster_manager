@@ -10,7 +10,7 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 /// A collection of static functions to work with geohashes, as exlpained
 /// [here](https://en.wikipedia.org/wiki/Geohash)
 class Geohash {
-  static const Map<String, int> _base32CharToNumber = const <String, int>{
+  static const Map<String, int> _base32CharToNumber = <String, int>{
     '0': 0,
     '1': 1,
     '2': 2,
@@ -44,7 +44,7 @@ class Geohash {
     'y': 30,
     'z': 31
   };
-  static const List<String> _base32NumberToChar = const <String>[
+  static const List<String> _base32NumberToChar = <String>[
     '0',
     '1',
     '2',
@@ -80,7 +80,7 @@ class Geohash {
   ];
 
   /// Encode a latitude and longitude pair into a  geohash string.
-  static String encode(final LatLng latLng, {final int codeLength: 12}) {
+  static String encode(final LatLng latLng, {final int codeLength= 12}) {
     if (codeLength > 20 || (identical(1.0, 1) && codeLength > 12)) {
       //Javascript can only handle 32 bit ints reliably.
       throw ArgumentError(
