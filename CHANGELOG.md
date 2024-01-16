@@ -1,3 +1,8 @@
+## 3.1.0
+
+- Bump dependency versions
+- Max distance clustering
+
 ## 3.0.0+1
 
 - Remove useless log

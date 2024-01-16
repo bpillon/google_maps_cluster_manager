@@ -14,14 +14,14 @@ description: A new Flutter project.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  google_maps_flutter: ^2.0.6
-  google_maps_flutter_web: ^0.3.0+3
+  google_maps_flutter: ^2.5.2
+  google_maps_flutter_web: ^0.5.4+3
   google_maps_cluster_manager:
     path: ../
 

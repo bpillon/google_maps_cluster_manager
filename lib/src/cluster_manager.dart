@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -128,18 +127,18 @@ class ClusterManager<T extends ClusterItem> {
     if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
       return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
 
+    List<Cluster<T>> markers;
+
     if (clusterAlgorithm == ClusterAlgorithm.GEOHASH ||
         visibleItems.length >= maxItemsForMaxDistAlgo) {
       int level = _findLevel(levels);
-      List<Cluster<T>> markers = _computeClusters(
-          visibleItems, List.empty(growable: true),
+      markers = _computeClusters(visibleItems, List.empty(growable: true),
           level: level);
-      return markers;
     } else {
-      List<Cluster<T>> markers =
-          _computeClustersWithMaxDist(visibleItems, _zoom);
-      return markers;
+      markers = _computeClustersWithMaxDist(visibleItems, _zoom);
     }
+
+    return markers;
   }
 
   LatLngBounds _inflateBounds(LatLngBounds bounds) {

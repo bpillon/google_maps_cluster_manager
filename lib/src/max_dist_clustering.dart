@@ -38,7 +38,6 @@ class MaxDistClustering<T extends ClusterItem> {
       changed = false;
       for (Cluster<T> c in _cluster) {
         _MinDistCluster<T>? minDistCluster = getClosestCluster(c, zoomLevel);
-        // print("mindistcluster ${minDistCluster?.dist}");
         if (minDistCluster == null || minDistCluster.dist > epsilon) continue;
         _cluster.add(Cluster.fromClusters(minDistCluster.cluster, c));
         _cluster.remove(c);

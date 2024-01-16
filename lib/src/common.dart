@@ -1,23 +1,6 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
-
-import 'cluster.dart';
-
-const int _mio = 1000000;
-const int _thd = 1000;
-const double _PI = 3.141592653589793238;
-
-class _Tuple {
-  final LatLng pos1;
-  final LatLng pos2;
-
-  _Tuple(this.pos1, this.pos2);
-
-  bool operator ==(o) => o is _Tuple && pos1 == o.pos1 && pos2 == o.pos2;
-  int get hashCode => pos1.hashCode + pos2.hashCode;
-}
 
 class DistUtils {
 // Zoom-Level:
@@ -47,18 +30,18 @@ class DistUtils {
 // 18	68 719 476 736	0.001	0.596	1:2 thousand	some buildings, trees
 // 19	274 877 906 944	0.0005	0.298	1:1 thousand	local highway and crossing details
 // 20	1 099 511 627 776	0.00025	0.149	1:5 hundred	A mid-sized building
-  final Map<_Tuple, double> distCache = {};
+  final Map<(LatLng, LatLng), double> distCache = {};
 
   double getLatLonDist(LatLng point1, LatLng point2, int zoomLevel) {
-    if (distCache[_Tuple(point1, point2)] != null) {
-      return distCache[_Tuple(point1, point2)]!;
+    if (distCache[(point1, point2)] != null) {
+      return distCache[(point1, point2)]!;
     }
     double meterPerPixel = _getScalingFactor(zoomLevel);
     double dist = getDistanceFromLatLonInKm(point1.latitude, point1.longitude,
             point2.latitude, point2.longitude) /
-        (meterPerPixel / _thd);
+        (meterPerPixel / 1000);
     // print("dist is $x");
-    distCache[_Tuple(point1, point2)] = dist;
+    distCache[(point1, point2)] = dist;
     return dist;
   }
 
@@ -78,7 +61,7 @@ class DistUtils {
   }
 
   double _degreeToRadian(double degree) {
-    return degree * _PI / 180;
+    return degree * pi / 180;
   }
 
   double _getScalingFactor(int zoomLevel) {

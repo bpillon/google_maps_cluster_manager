@@ -80,7 +80,7 @@ class Geohash {
   ];
 
   /// Encode a latitude and longitude pair into a  geohash string.
-  static String encode(final LatLng latLng, {final int codeLength: 12}) {
+  static String encode(final LatLng latLng, {final int codeLength = 12}) {
     if (codeLength > 20 || (identical(1.0, 1) && codeLength > 12)) {
       //Javascript can only handle 32 bit ints reliably.
       throw ArgumentError(
