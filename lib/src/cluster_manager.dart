@@ -23,8 +23,8 @@ class ClusterManager<T extends ClusterItem> {
       this.maxItemsForMaxDistAlgo = 200,
       this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
       this.maxDistParams,
-        this.stopClusteringZoom,
-        this.mixedAlgorithmEnabled = false})
+      this.stopClusteringZoom,
+      this.mixedAlgorithmEnabled = false})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
         assert(levels.length <= precision);
 
@@ -119,7 +119,9 @@ class ClusterManager<T extends ClusterItem> {
         .getVisibleRegion(mapId: _mapId!);
 
     late LatLngBounds inflatedBounds;
-    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH) {
+
+    /// mapBounds include only the visible items on map showed at screen. _inflateBounds method allows extra percent
+    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH || mixedAlgorithmEnabled) {
       inflatedBounds = _inflateBounds(mapBounds);
     } else {
       inflatedBounds = mapBounds;
@@ -132,10 +134,14 @@ class ClusterManager<T extends ClusterItem> {
     if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
       return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
 
+    bool _shouldUseGeoHashAlgorithm(ClusterAlgorithm algorithm, List<T> items) {
+      return algorithm == ClusterAlgorithm.GEOHASH ||
+          (items.length >= maxItemsForMaxDistAlgo && !mixedAlgorithmEnabled);
+    }
+
     List<Cluster<T>> markers;
 
-    if (clusterAlgorithm == ClusterAlgorithm.GEOHASH ||
-        visibleItems.length >= maxItemsForMaxDistAlgo) {
+    if (_shouldUseGeoHashAlgorithm(clusterAlgorithm, visibleItems)) {
       int level = _findLevel(levels);
       markers = _computeClusters(visibleItems, List.empty(growable: true),
           level: level);
@@ -202,8 +208,10 @@ class ClusterManager<T extends ClusterItem> {
   }
 
   List<Cluster<T>> _computeClusters(
-      List<T> inputItems, List<Cluster<T>> markerItems,
-      {int level = 5}) {
+    List<T> inputItems,
+    List<Cluster<T>> markerItems, {
+    int level = 5,
+  }) {
     if (inputItems.isEmpty) return markerItems;
     String nextGeohash = inputItems[0].geohash.substring(0, level);
 
