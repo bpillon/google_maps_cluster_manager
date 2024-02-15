@@ -23,7 +23,8 @@ class ClusterManager<T extends ClusterItem> {
       this.maxItemsForMaxDistAlgo = 200,
       this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
       this.maxDistParams,
-      this.stopClusteringZoom})
+        this.stopClusteringZoom,
+        this.mixedAlgorithmEnabled = false})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
         assert(levels.length <= precision);
 
@@ -42,9 +43,10 @@ class ClusterManager<T extends ClusterItem> {
   /// Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
 
-  // Clusteringalgorithm
+  /// Clustering algorithm
   final ClusterAlgorithm clusterAlgorithm;
 
+  /// The distance between cluster items. The lower the value, the closer the elements have to be to form a cluster.
   final MaxDistParams? maxDistParams;
 
   /// Zoom level to stop cluster rendering
@@ -64,6 +66,9 @@ class ClusterManager<T extends ClusterItem> {
   late double _zoom;
 
   final double _maxLng = 180 - pow(10, -10.0) as double;
+
+  /// Use properties from both algorithms
+  final bool mixedAlgorithmEnabled;
 
   /// Set Google Map Id for the cluster manager
   void setMapId(int mapId, {bool withUpdate = true}) async {
