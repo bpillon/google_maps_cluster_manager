@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_cluster_manager/src/max_dist_clustering.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'distance_based_clustering.dart';
+import 'k_clustering.dart';
 
-enum ClusterAlgorithm { GEOHASH, MAX_DIST }
+enum ClusterAlgorithm { GEOHASH, MAX_DIST, DISTANCE_BASED, K_MEANS }
 
 class MaxDistParams {
   final double epsilon;
@@ -23,6 +25,8 @@ class ClusterManager<T extends ClusterItem> {
       this.maxItemsForMaxDistAlgo = 200,
       this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
       this.maxDistParams,
+      this.distanceThreshold,
+      this.k,
       this.stopClusteringZoom})
       : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
         assert(levels.length <= precision);
@@ -42,10 +46,12 @@ class ClusterManager<T extends ClusterItem> {
   /// Extra percent of markers to be loaded (ex : 0.2 for 20%)
   final double extraPercent;
 
-  // Clusteringalgorithm
+  // Clustering algorithm
   final ClusterAlgorithm clusterAlgorithm;
 
   final MaxDistParams? maxDistParams;
+  final double? distanceThreshold;
+  final int? k;
 
   /// Zoom level to stop cluster rendering
   final double? stopClusteringZoom;
@@ -134,6 +140,11 @@ class ClusterManager<T extends ClusterItem> {
       int level = _findLevel(levels);
       markers = _computeClusters(visibleItems, List.empty(growable: true),
           level: level);
+    } else if (clusterAlgorithm == ClusterAlgorithm.DISTANCE_BASED) {
+      markers = DistanceBasedClustering<T>(thresholdDistance: distanceThreshold!)
+          .cluster(visibleItems);
+    } else if (clusterAlgorithm == ClusterAlgorithm.K_MEANS) {
+      markers = KMeansClustering<T>(k: k!).cluster(visibleItems);
     } else {
       markers = _computeClustersWithMaxDist(visibleItems, _zoom);
     }
