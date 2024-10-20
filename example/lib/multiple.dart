@@ -5,7 +5,8 @@ import 'package:example/place.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
+import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart'
+    as cluster_manager;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 void main() => runApp(MyApp());
@@ -29,8 +30,8 @@ class MapSample extends StatefulWidget {
 }
 
 class MapSampleState extends State<MapSample> {
-  late ClusterManager _manager;
-  late ClusterManager _manager2;
+  late cluster_manager.ClusterManager _manager;
+  late cluster_manager.ClusterManager _manager2;
 
   Completer<GoogleMapController> _controller = Completer();
 
@@ -73,10 +74,10 @@ class MapSampleState extends State<MapSample> {
 
   @override
   void initState() {
-    _manager = ClusterManager<Place>(items, _updateMarkers,
+    _manager = cluster_manager.ClusterManager<Place>(items, _updateMarkers,
         markerBuilder: _getMarkerBuilder(Colors.red));
 
-    _manager2 = ClusterManager<Place>(items2, _updateMarkers2,
+    _manager2 = cluster_manager.ClusterManager<Place>(items2, _updateMarkers2,
         markerBuilder: _getMarkerBuilder(Colors.blue));
     super.initState();
   }
@@ -128,7 +129,8 @@ class MapSampleState extends State<MapSample> {
     );
   }
 
-  Future<Marker> Function(Cluster<Place>) _getMarkerBuilder(Color color) =>
+  Future<Marker> Function(cluster_manager.Cluster<Place>) _getMarkerBuilder(
+          Color color) =>
       (cluster) async {
         return Marker(
           markerId: MarkerId(cluster.getId()),
