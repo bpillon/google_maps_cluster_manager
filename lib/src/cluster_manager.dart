@@ -7,6 +7,7 @@ import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_cluster_manager/src/max_dist_clustering.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart'
     hide Cluster;
+import 'cluster.dart' as local;
 
 enum ClusterAlgorithm { GEOHASH, MAX_DIST }
 
@@ -18,18 +19,18 @@ class MaxDistParams {
 
 class ClusterManager<T extends ClusterItem> {
   ClusterManager(this._items, this.updateMarkers,
-      {Future<Marker> Function(Cluster<T>)? markerBuilder,
+      {Future<Marker> Function(local.Cluster<T>)? markerBuilder,
       this.levels = const [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
       this.extraPercent = 0.5,
       this.maxItemsForMaxDistAlgo = 200,
       this.clusterAlgorithm = ClusterAlgorithm.GEOHASH,
       this.maxDistParams,
       this.stopClusteringZoom})
-      : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder,
+      : this.markerBuilder = markerBuilder ?? _basicMarkerBuilder<T>(),
         assert(levels.length <= precision);
 
   /// Method to build markers
-  final Future<Marker> Function(Cluster<T>) markerBuilder;
+  final Future<Marker> Function(local.Cluster<T>) markerBuilder;
 
   // Num of Items to switch from MAX_DIST algo to GEOHASH
   final int maxItemsForMaxDistAlgo;
@@ -79,7 +80,7 @@ class ClusterManager<T extends ClusterItem> {
   }
 
   void _updateClusters() async {
-    List<Cluster<T>> mapMarkers = await getMarkers();
+    List<local.Cluster<T>> mapMarkers = await getMarkers();
 
     final Set<Marker> markers =
         Set.from(await Future.wait(mapMarkers.map((m) => markerBuilder(m))));
@@ -108,7 +109,7 @@ class ClusterManager<T extends ClusterItem> {
   }
 
   /// Retrieve cluster markers
-  Future<List<Cluster<T>>> getMarkers() async {
+  Future<List<local.Cluster<T>>> getMarkers() async {
     if (_mapId == null) return List.empty();
 
     final LatLngBounds mapBounds = await GoogleMapsFlutterPlatform.instance
@@ -126,9 +127,9 @@ class ClusterManager<T extends ClusterItem> {
     }).toList();
 
     if (stopClusteringZoom != null && _zoom >= stopClusteringZoom!)
-      return visibleItems.map((i) => Cluster<T>.fromItems([i])).toList();
+      return visibleItems.map((i) => local.Cluster<T>.fromItems([i])).toList();
 
-    List<Cluster<T>> markers;
+    List<local.Cluster<T>> markers;
 
     if (clusterAlgorithm == ClusterAlgorithm.GEOHASH ||
         visibleItems.length >= maxItemsForMaxDistAlgo) {
@@ -188,7 +189,7 @@ class ClusterManager<T extends ClusterItem> {
     return 1;
   }
 
-  List<Cluster<T>> _computeClustersWithMaxDist(
+  List<local.Cluster<T>> _computeClustersWithMaxDist(
       List<T> inputItems, double zoom) {
     MaxDistClustering<T> scanner = MaxDistClustering(
       epsilon: maxDistParams?.epsilon ?? 20,
@@ -197,8 +198,8 @@ class ClusterManager<T extends ClusterItem> {
     return scanner.run(inputItems, _getZoomLevel(zoom));
   }
 
-  List<Cluster<T>> _computeClusters(
-      List<T> inputItems, List<Cluster<T>> markerItems,
+  List<local.Cluster<T>> _computeClusters(
+      List<T> inputItems, List<local.Cluster<T>> markerItems,
       {int level = 5}) {
     if (inputItems.isEmpty) return markerItems;
     String nextGeohash = inputItems[0].geohash.substring(0, level);
@@ -207,7 +208,7 @@ class ClusterManager<T extends ClusterItem> {
         .where((p) => p.geohash.substring(0, level) == nextGeohash)
         .toList();
 
-    markerItems.add(Cluster<T>.fromItems(items));
+    markerItems.add(local.Cluster<T>.fromItems(items));
 
     List<T> newInputList = List.from(
         inputItems.where((i) => i.geohash.substring(0, level) != nextGeohash));
@@ -215,18 +216,19 @@ class ClusterManager<T extends ClusterItem> {
     return _computeClusters(newInputList, markerItems, level: level);
   }
 
-  static Future<Marker> Function(Cluster) get _basicMarkerBuilder =>
-      (cluster) async {
-        return Marker(
-          markerId: MarkerId(cluster.getId()),
-          position: cluster.location,
-          onTap: () {
-            print(cluster);
-          },
-          icon: await _getBasicClusterBitmap(cluster.isMultiple ? 125 : 75,
-              text: cluster.isMultiple ? cluster.count.toString() : null),
-        );
-      };
+  static Future<Marker> Function(local.Cluster<T>)
+      _basicMarkerBuilder<T extends ClusterItem>() =>
+          (local.Cluster<T> cluster) async {
+            return Marker(
+              markerId: MarkerId(cluster.getId()),
+              position: cluster.location,
+              onTap: () {
+                print(cluster);
+              },
+              icon: await _getBasicClusterBitmap(cluster.isMultiple ? 125 : 75,
+                  text: cluster.isMultiple ? cluster.count.toString() : null),
+            );
+          };
 
   static Future<BitmapDescriptor> _getBasicClusterBitmap(int size,
       {String? text}) async {
